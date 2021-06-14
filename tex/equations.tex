@@ -1,0 +1,86 @@
+\documentclass[aps,pop,preprint]{revtex4}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\newcommand{\Rm}{\mathrm{Rm}}
+\renewcommand{\Re}{\mathrm{Re}}
+\newcommand{\Pm}{\mathrm{Pm}}
+
+\begin{document}
+	% \title{Model equations}
+	% \begin{abstract}
+	% 
+	% \end{abstract}
+	% \maketitle
+	
+	\section{Model Derivation}
+	\label{sec:derivation}
+	We start from the MHD equations for an incompressible, unstratified plasma with finite viscosity and resistivity and imposed forcing:
+	\begin{equation}
+	\rho_0 \left( \frac{\partial}{\partial t} + \mathbf{v} \cdot \nabla \right) \mathbf{v} = -\nabla p + \frac{1}{c} \mathbf{J} \times \mathbf{B} + \rho_0 \nu \nabla^2 \mathbf{v} + \mathbf{F}_0
+	\end{equation}
+	\begin{equation}
+	\frac{\partial}{\partial t} \mathbf{B} = \nabla \times (\mathbf{v} \times \mathbf{B}) + \eta \nabla^2 \mathbf{B}
+	\end{equation}
+	\begin{equation}
+	\nabla \cdot \mathbf{v} = 0
+	\end{equation}
+	\begin{equation}
+	\nabla \cdot \mathbf{B} = 0,
+	\end{equation}
+	where we use a constant, sinusoidal forcing function (for so-called ``Kolmogorov flow")
+	\begin{equation}
+	\mathbf{F}_0 = F_0 \sin (k_0 z) \hat{\mathbf{x}}.
+	\end{equation}
+	
+	\subsection{Non-dimensionalization}
+	\label{derivation:subsec:nondim}
+	Cope \& Garaud JFM 2020 has a helpful discussion of non-dimensionalization of Kolmogorov flow in linear vs nonlinear calculations. 
+	This is essentially following their paper. 
+	
+	To non-dimensionalize, we can use $k_0$ as our reference length scale and the equilibrium field strength $B_0$ as our reference magnetic field strength, but we need to pick a reference velocity $\left[ U \right]$. 
+	One choice we can make is to assume the $\mathbf{v} \cdot \nabla \mathbf{v}$ term balances the forcing term. 
+	Then dimensional analysis leads to
+	\begin{equation}
+	\left[ U \right] = \sqrt{ \frac{F_0}{k_0}}.
+	\end{equation}
+	This leads to the non-dimensionalized equations (see Cope \& Garaud Eq.~2.6)
+	\begin{equation}
+	\left( \frac{\partial}{\partial t} + \mathbf{v} \cdot \nabla \right) \mathbf{v} = -\nabla p + \frac{1}{M_A^2} \mathbf{J} \times \mathbf{B} + \frac{1}{\Re} \nabla^2 \mathbf{v} + \sin (z) \hat{\mathbf{x}}
+	\end{equation}
+	and
+	\begin{equation}
+	\frac{\partial}{\partial t} \mathbf{B} = \nabla \times (\mathbf{v} \times \mathbf{B}) + \frac{1}{\Rm} \nabla^2 \mathbf{B},
+	\end{equation}
+	where now everything is non-dimensionalized, $p$ is really $p/\rho_0$, and our free parameters are the Alfv\'{e}n Mach number
+	\begin{equation}
+	M_A = \frac{\left[ U \right]}{v_A} \propto \frac{\sqrt{F_0/k_0}}{B_0}
+	\end{equation}
+	($v_A$ is the Alfv\'{e}n velocity), the Reynolds number
+	\begin{equation}
+	\Re = \frac{\left[ U \right]}{k_0 \nu} = \frac{\sqrt{F_0}}{k_0^{3/2} \nu},
+	\end{equation}
+	and the magnetic Reynolds number
+	\begin{equation}
+	\Rm = \frac{\left[ U \right]}{k_0 \eta} = \frac{\sqrt{F_0}}{k_0^{3/2} \eta},
+	\end{equation}
+	which we can also specify in terms of the magnetic Prandtl number
+	\begin{equation}
+	\Pm = \frac{\Rm}{\Re} = \frac{\nu}{\eta}.
+	\end{equation}
+	Note that a weak magnetic field means a high $M_A$, and the threshold for stabilizing KH in ideal MHD ($\nu = 0$, $\eta = 0$) is usually in the neighborhood of $M_A \approx 1$. 
+	(From a little testing, it seems like the threshold is pretty close to $M_A = \sqrt{2}$ for this system.) 
+	
+	%The following was copied-and-pasted from a TeX file for a different project that doesn't have a forcing function, so I haven't modified it yet to include the forcing term.
+	%
+	%\subsection{2D case} \label{derivation:subsec:2d}
+	%In the 2D case we may define our streamfunction $\phi$ and flux function $\psi$ such that $\mathbf{v} = \hat{\mathbf{y}} \times \nabla \phi$ and $\mathbf{B} = \hat{\mathbf{y}} \times \nabla \psi$. 
+	%Then the equations become:
+	%\begin{equation}
+	%\frac{\partial}{\partial t} \nabla^2 \phi + \left\{\nabla^2 \phi, \phi \right\} = \frac{1}{M_A^2}\left\{\nabla^2 \psi, \psi \right\} + \frac{1}{\mathrm{Re}}\nabla^4 \phi
+	%\end{equation}
+	%\begin{equation}
+	%\frac{\partial}{\partial t} \psi = \left\{ \phi, \psi \right\} + \frac{1}{\mathrm{Rm}}\nabla^2 \psi
+	%\end{equation}
+	%(where $\left\{f, g\right\} \equiv \partial_x f \partial_z g - \partial_z g \partial_x f$).
+\end{document}
