@@ -8,14 +8,15 @@ import logging
 from collections import OrderedDict
 logger = logging.getLogger(__name__.split('.')[-1])
 
-def initialize_output(solver, data_dir, aspect, threeD=False, volumes=False,
+def initialize_output(solver, data_dir, Lx,Lz, threeD=False, volumes=False,
                       max_writes=20, output_dt=0.1, slice_output_dt=1, vol_output_dt=10, out_iter=np.inf,
                       mode="overwrite", **kwargs):
     """
     Sets up output from runs.
     """
 
-    Lx = aspect
+    Lx = Lx
+    Lz = Lz
     
 
     # Analysis
@@ -35,6 +36,7 @@ def initialize_output(solver, data_dir, aspect, threeD=False, volumes=False,
 
     scalar = solver.evaluator.add_file_handler(data_dir+'scalar', sim_dt=output_dt, max_writes=max_writes*100, mode=mode, iter=out_iter)
     scalar.add_task("vol_avg(0.5*vel_rms**2)", name="KE")
+    scalar.add_task("vol_avg(0.5*output_MA**2)", name="ME")
     scalar.add_task("vol_avg(u)",  name="u")
     scalar.add_task("vol_avg(w)",  name="w")
     scalar.add_task("vol_avg(Bx)",  name="Bx")
@@ -47,16 +49,16 @@ def initialize_output(solver, data_dir, aspect, threeD=False, volumes=False,
     analysis_tasks['scalar'] = scalar
 
         # Analysis
-    #slices = solver.evaluator.add_file_handler(data_dir+'slices', sim_dt=slice_output_dt, max_writes=max_writes, mode=mode, iter=out_iter*(slice_output_dt/output_dt))
-    #slices.add_task("u")
-    #slices.add_task("w")
-    #slices.add_task("Bx")
-    #slices.add_task("Bz")
-    #slices.add_task("zeta")
-    #slices.add_task("J")
-    #slices.add_task("phi")
-    #slices.add_task("psi")
-    #analysis_tasks['slices'] = slices
+    slices = solver.evaluator.add_file_handler(data_dir+'slices', sim_dt=slice_output_dt, max_writes=max_writes, mode=mode, iter=out_iter*(slice_output_dt/output_dt))
+    slices.add_task("u")
+    slices.add_task("w")
+    slices.add_task("Bx")
+    slices.add_task("Bz")
+    slices.add_task("zeta")
+    slices.add_task("J")
+    slices.add_task("phi")
+    slices.add_task("psi")
+    analysis_tasks['slices'] = slices
 
 
     return analysis_tasks
