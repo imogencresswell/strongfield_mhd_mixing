@@ -147,9 +147,9 @@ problem.substitutions['output_MA'] = "1.0/b_mag"#is this right?
 # I don't understand why there's a 1/Re coefficient on the forcing term in the uncommented line. Need to double-check.
 # Presumably I made a silly mistake.
 # problem.add_equation("dt(zeta) - Reinv*(dx(dx(zeta)) + dz(dz(zeta))) = -dx(zeta) * dz(phi) + dx(phi) * dz(zeta) + HB_star * (dx(J) * dz(psi) - dx(psi) * dz(J)) - cos(x)", condition="(nx!=0) or (nz!=0)")
-problem.add_equation("dt(zeta) - Reinv * (dx(dx(zeta)) + dz(dz(zeta))) = -dx(zeta) * dz(phi) + dx(phi) * dz(zeta) + HB_star * (dx(J) * dz(psi) - (dx(psi) - 1) * dz(J)) - Reinv * cos(x)", condition="(nx!=0) or (nz!=0)")
+problem.add_equation("dt(zeta) - Reinv * (dx(dx(zeta)) + dz(dz(zeta))) = -dx(zeta) * dz(phi) + dx(phi) * dz(zeta) + HB_star * (dx(J) * (dz(psi) + 1) - dx(psi) * dz(J)) - Reinv * cos(x)", condition="(nx!=0) or (nz!=0)")
 problem.add_equation("phi = 0", condition="(nx==0) and (nz==0)")
-problem.add_equation("dt(psi) - Rminv*J = dx(phi)*dz(psi) - (dx(psi) - 1)*dz(phi)")
+problem.add_equation("dt(psi) - Rminv*J = dx(phi)*(dz(psi) + 1) - dx(psi)*dz(phi)")
 
 # Build solver
 # solver = problem.build_solver(de.timesteppers.SBDF3)  # same timestepper as PADDIM
@@ -174,7 +174,7 @@ rand = np.random.RandomState(seed=42)
 noise = rand.standard_normal(gshape)[slices]
 phi['g'] = pert #* noise
 filter_field(phi)
-phi['g'] += np.cos(x)
+phi['g'] += np.cos(x)*Re
 
 # Integration parameters
 solver.stop_sim_time = stop_sim_time
@@ -200,7 +200,7 @@ CFL2.add_velocities(('Bx/MA', 'Bz/MA'))
 flow = flow_tools.GlobalFlowProperty(solver, cadence=1)
 
 flow.add_property("dx(Bx) + dz(Bz)", name='divB')
-flow.add_property("b_mag", name="b_mag")
+flow.add_property("b_mag/MA", name="b_mag")
 flow.add_property("output_Re", name="output_Re")
 
 
@@ -228,6 +228,7 @@ try:
             log_string +=  'dt: {:8.3e}, '.format(dt)
             log_string += 'divB: {:8.3e}, '.format(flow.grid_average('divB'))
             log_string += 'dt_ratio: {:8.3e}, '.format(dt/dt2)
+            log_string += 'B_rms: {:8.3e}, '.format(flow.volume_average('b_mag'))
             log_string += 'Re: {:8.3e}/{:8.3e}, '.format(Re_avg, flow.max('output_Re'))
             logger.info(log_string)
 

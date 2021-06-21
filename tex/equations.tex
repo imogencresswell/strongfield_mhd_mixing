@@ -71,16 +71,16 @@
 	Note that a weak magnetic field means a high $M_A$, and the threshold for stabilizing KH in ideal MHD ($\nu = 0$, $\eta = 0$) is usually in the neighborhood of $M_A \approx 1$. 
 	(From a little testing, it seems like the threshold is pretty close to $M_A = \sqrt{2}$ for this system.) 
 	
-	%The following was copied-and-pasted from a TeX file for a different project that doesn't have a forcing function, so I haven't modified it yet to include the forcing term.
-	%
-	%\subsection{2D case} \label{derivation:subsec:2d}
-	%In the 2D case we may define our streamfunction $\phi$ and flux function $\psi$ such that $\mathbf{v} = \hat{\mathbf{y}} \times \nabla \phi$ and $\mathbf{B} = \hat{\mathbf{y}} \times \nabla \psi$. 
-	%Then the equations become:
-	%\begin{equation}
-	%\frac{\partial}{\partial t} \nabla^2 \phi + \left\{\nabla^2 \phi, \phi \right\} = \frac{1}{M_A^2}\left\{\nabla^2 \psi, \psi \right\} + \frac{1}{\mathrm{Re}}\nabla^4 \phi
-	%\end{equation}
-	%\begin{equation}
-	%\frac{\partial}{\partial t} \psi = \left\{ \phi, \psi \right\} + \frac{1}{\mathrm{Rm}}\nabla^2 \psi
-	%\end{equation}
-	%(where $\left\{f, g\right\} \equiv \partial_x f \partial_z g - \partial_z g \partial_x f$).
+	\subsection{2D case} \label{derivation:subsec:2d}
+	In the 2D case we may define our streamfunction $\phi$ and flux function $\psi$ such that $\mathbf{v} = \hat{\mathbf{y}} \times \nabla \phi$ and $\mathbf{B} = \mathbf{B}_0 + \hat{\mathbf{y}} \times \nabla \psi$ (where $\mathbf{B}_0 = \hat{\mathbf{x}}$). 
+	This makes $\mathbf{v} = \partial_z \phi \hat{\mathbf{x}} - \partial_x \phi \hat{\mathbf{z}}$ and similar for $\mathbf{B}$. 
+	It also makes $\nabla^2 \phi$ the y component of vorticity, and $\nabla^2 \psi$ the y component of current density. 
+	Then the equations become:
+	\begin{equation}
+	\frac{\partial}{\partial t} \nabla^2 \phi + \left\{\nabla^2 \phi, \phi \right\} = \frac{1}{M_A^2}\left(\left\{\nabla^2 \psi, \psi \right\} + \nabla^2 \partial_x \psi \right) + \frac{1}{\mathrm{Re}}\nabla^4 \phi + \cos(z)
+	\end{equation}
+	\begin{equation}
+	\frac{\partial}{\partial t} \psi = \left\{ \phi, \psi \right\} + \partial_x \phi + \frac{1}{\mathrm{Rm}}\nabla^2 \psi
+	\end{equation}
+	(where $\left\{f, g\right\} \equiv \partial_x f \partial_z g - \partial_z g \partial_x f$).
 \end{document}

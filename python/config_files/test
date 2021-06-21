@@ -1,10 +1,10 @@
 [parameters]
 
-Lx=2.0
-Ly=4.0
+Lx_factor = 8.0
+Lz_factor = 4.0
 
-Nx=128
-Nz=256
+Nx=256
+Nz=128
 
 HB=0.4
 Pm=0.1
