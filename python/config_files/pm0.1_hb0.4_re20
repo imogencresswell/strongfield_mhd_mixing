@@ -1,0 +1,12 @@
+[parameters]
+
+Lx_factor = 8.0
+Lz_factor = 4.0
+
+Nx=256
+Nz=128
+
+HB=0.4
+Pm=0.1
+Re=20.0
+label=output_test
