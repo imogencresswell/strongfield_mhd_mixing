@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH --job-name="pm0.1_hb4_re20" # Job name
+#SBATCH --partition=cpuq
+#SBATCH --account=cpuq
+#SBATCH --output="pm0.1_hb4_re20.o%j" # Name of stdout output file
+#SBATCH --error="pm0.1_hb4_re20.e%j" # Name of stderr error file
+#SBATCH --nodes=2 # Total number of nodes
+#SBATCH --ntasks=64
+#SBATCH --ntasks-per-node=32 # Total number of mpi tasks per node
+#SBATCH -t 03:00:00 # Run time (hh:mm:ss)
+module load python/3.8.6
+
+mpiexec -n 64 python3 planar_Kolmogorov_2D_test.py ./config_files/pm0.1_hb4_re20
