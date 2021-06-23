@@ -70,7 +70,7 @@ if args['<config>'] is not None:
 #Read in command line args, set up data directory
 
 resolution_flags=['Nx','Nz']
-data_dir = construct_out_dir(args, base_flags=['HB','Pm','Re'],label_flags=[], resolution_flags=resolution_flags, parent_dir_flag='root_dir')
+data_dir = construct_out_dir(args, base_flags=['HB','Pm','Re','Lx_factor','Lz_factor'],label_flags=[], resolution_flags=resolution_flags, parent_dir_flag='root_dir')
 logger.info("saving run in: {}".format(data_dir))
 
 
@@ -184,7 +184,7 @@ solver.stop_iteration = stop_iteration
 # Analysis
 snap = solver.evaluator.add_file_handler('snapshots', iter=500, max_writes=100000000)
 snap.add_system(solver.state)
-analysis_tasks = initialize_output(solver, data_dir, Lx, Lz, plot_boundaries=False, threeD=False, mode="overwrite", slice_output_dt=0.25, output_dt=0.1, out_iter=100) #need to change this when i make output file
+analysis_tasks = initialize_output(solver, data_dir, Lx, Lz, plot_boundaries=False, threeD=False, mode="overwrite", slice_output_dt=4, output_dt=1, out_iter=500) #need to change this when i make output file
 
 # CFL
 # Not totally sure what the best settings here are. Maybe need to experiment a bit.
