@@ -84,7 +84,7 @@ Pm=float(args['--Pm'])
 Re=float(args['--Re'])
 Re_m = Re*Pm
 aspect=Lx
-init_dt = 0.01 * Lx / (Nx)  # I have not thought about what init_dt should be, this was a guess
+init_dt = 0.001 * Lx / (Nx)  # I have not thought about what init_dt should be, this was a guess
 
 
 logger.info("HB = {:2g}, Pm = {:2g}, Re = {:2g} , boxsize={}x{}, resolution = {}x{}".format(HB_star, Pm, Re, Lx, Lz,  Nx, Nz))
@@ -92,7 +92,7 @@ logger.info("HB = {:2g}, Pm = {:2g}, Re = {:2g} , boxsize={}x{}, resolution = {}
 # simulation stop conditions
 stop_sim_time = np.inf  # stop time in simulation time units
 stop_wall_time = np.inf  # stop time in terms of wall clock
-stop_iteration = 100000  # stop time in terms of iteration count
+stop_iteration = 1000000  # stop time in terms of iteration count
 
 
 #def filter_field(field, frac=0.5):
@@ -147,13 +147,13 @@ problem.substitutions['output_MA'] = "1.0/b_mag"#is this right?
 # I don't understand why there's a 1/Re coefficient on the forcing term in the uncommented line. Need to double-check.
 # Presumably I made a silly mistake.
 # problem.add_equation("dt(zeta) - Reinv*(dx(dx(zeta)) + dz(dz(zeta))) = -dx(zeta) * dz(phi) + dx(phi) * dz(zeta) + HB_star * (dx(J) * dz(psi) - dx(psi) * dz(J)) - cos(x)", condition="(nx!=0) or (nz!=0)")
-problem.add_equation("dt(zeta) - Reinv * (dx(dx(zeta)) + dz(dz(zeta))) = -dx(zeta) * dz(phi) + dx(phi) * dz(zeta) + HB_star * (dx(J) * (dz(psi) + 1) - dx(psi) * dz(J)) - Reinv * cos(x)", condition="(nx!=0) or (nz!=0)")
+problem.add_equation("dt(zeta) - Reinv * (dx(dx(zeta)) + dz(dz(zeta))) = -dx(zeta) * dz(phi) + dx(phi) * dz(zeta) + HB_star * (dx(J) * (dz(psi) + 1) - dx(psi) * dz(J)) +  cos(z)", condition="(nx!=0) or (nz!=0)")
 problem.add_equation("phi = 0", condition="(nx==0) and (nz==0)")
 problem.add_equation("dt(psi) - Rminv*J = dx(phi)*(dz(psi) + 1) - dx(psi)*dz(phi)")
 
 # Build solver
 # solver = problem.build_solver(de.timesteppers.SBDF3)  # same timestepper as PADDIM
-solver = problem.build_solver(de.timesteppers.SBDF2)
+solver = problem.build_solver(de.timesteppers.RK443)
 logger.info('Solver built')
 
 # Initial conditions
@@ -172,9 +172,9 @@ gshape = domain.dist.grid_layout.global_shape(scales=1)
 slices = domain.dist.grid_layout.slices(scales=1)
 rand = np.random.RandomState(seed=42)
 noise = rand.standard_normal(gshape)[slices]
-phi['g'] = pert #* noise
+phi['g'] = pert * noise
 filter_field(phi)
-phi['g'] += np.cos(x)*Re
+phi['g'] += np.cos(z)*Re
 
 # Integration parameters
 solver.stop_sim_time = stop_sim_time
@@ -184,7 +184,7 @@ solver.stop_iteration = stop_iteration
 # Analysis
 snap = solver.evaluator.add_file_handler('snapshots', iter=500, max_writes=100000000)
 snap.add_system(solver.state)
-analysis_tasks = initialize_output(solver, data_dir, Lx, Lz, plot_boundaries=False, threeD=False, mode="overwrite", slice_output_dt=4, output_dt=1, out_iter=500) #need to change this when i make output file
+analysis_tasks = initialize_output(solver, data_dir, Lx, Lz, plot_boundaries=False, threeD=False, mode="overwrite", slice_output_dt=0.25, output_dt=0.11, out_iter=100) #need to change this when i make output file
 
 # CFL
 # Not totally sure what the best settings here are. Maybe need to experiment a bit.
