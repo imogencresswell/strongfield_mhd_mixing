@@ -63,6 +63,9 @@ problem.parameters['MA2inv'] = 1.0/(MA**2.0)  # 99% sure that this is just H_B^*
 problem.parameters['MA'] = MA
 problem.parameters['Reinv'] = 1.0/Reynolds
 problem.parameters['Rminv'] = 1.0/mReynolds
+problem.parameters['Lx'] = Lx
+problem.parameters['Ly'] = Ly
+problem.parameters['Lz'] = Lz
 
 problem.substitutions['Bx'] = "(dy(Az) - dz(Ay))"
 problem.substitutions['By'] = "(dz(Ax) - dx(Az))"
