@@ -84,7 +84,7 @@ Pm=float(args['--Pm'])
 Re=float(args['--Re'])
 Re_m = Re*Pm
 aspect=Lx
-init_dt = 0.001 * Lx / (Nx)  # I have not thought about what init_dt should be, this was a guess
+init_dt = 0.01 * Lx / (Nx)  # I have not thought about what init_dt should be, this was a guess
 
 
 logger.info("HB = {:2g}, Pm = {:2g}, Re = {:2g} , boxsize={}x{}, resolution = {}x{}".format(HB_star, Pm, Re, Lx, Lz,  Nx, Nz))
@@ -136,14 +136,17 @@ problem.substitutions['J'] = "dx(dx(psi)) + dz(dz(psi))"  # current density
 problem.substitutions['u'] = "dz(phi)"
 problem.substitutions['w'] = "-dx(phi)"
 problem.substitutions['Bx'] = "dz(psi)"
+problem.substitutions['Bx_tot'] = "1 + Bx"
 problem.substitutions['Bz'] = "-dx(psi)"
 problem.substitutions['vel_rms']     = 'sqrt(u**2 +  w**2)'
 problem.substitutions['b_mag']        = 'sqrt(Bx**2  + Bz**2)'
+problem.substitutions['b_mag_tot']        = 'sqrt(Bx_tot**2  + Bz**2)'
 problem.substitutions['plane_avg(A)'] = 'integ(A, "x")/Lx'
 problem.substitutions['vol_avg(A)']   = 'integ(A)/Lx/Lz'
 problem.substitutions['output_Re'] = "vel_rms*Lx"
 problem.substitutions['output_MA'] = "1.0/b_mag"#is this right?
-
+problem.substitutions['re_stress_tot']="dx(phi)*dz(phi)"
+problem.substitutions['max_stress_tot']="dx(psi)*dz(psi)"
 # I don't understand why there's a 1/Re coefficient on the forcing term in the uncommented line. Need to double-check.
 # Presumably I made a silly mistake.
 # problem.add_equation("dt(zeta) - Reinv*(dx(dx(zeta)) + dz(dz(zeta))) = -dx(zeta) * dz(phi) + dx(phi) * dz(zeta) + HB_star * (dx(J) * dz(psi) - dx(psi) * dz(J)) - cos(x)", condition="(nx!=0) or (nz!=0)")
@@ -174,7 +177,7 @@ rand = np.random.RandomState(seed=42)
 noise = rand.standard_normal(gshape)[slices]
 phi['g'] = pert * noise
 filter_field(phi)
-phi['g'] += np.cos(z)*Re
+phi['g'] += np.cos(z)
 
 # Integration parameters
 solver.stop_sim_time = stop_sim_time
@@ -188,10 +191,10 @@ analysis_tasks = initialize_output(solver, data_dir, Lx, Lz, plot_boundaries=Fal
 
 # CFL
 # Not totally sure what the best settings here are. Maybe need to experiment a bit.
-CFL = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=0.6,
+CFL = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=0.4,
                      max_change=1.5, max_dt=2e-1, threshold=0.1)
 CFL.add_velocities(('u', 'w'))
-CFL2 = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=0.6,
+CFL2 = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=0.4,
                      max_change=1.5, min_change=2e-1, max_dt=2e-1, threshold=0.1)#maybe need to add max dt and safety as
                                                                                 #input variables if timestepping is an issue
 CFL2.add_velocities(('Bx/MA', 'Bz/MA'))
