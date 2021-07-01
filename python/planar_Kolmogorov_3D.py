@@ -8,15 +8,17 @@ logger = logging.getLogger(__name__)
 
 
 # Parameters
-Lx, Ly, Lz = (4.0*np.pi, 4.0*np.pi, 20.0*np.pi)
-Nx, Ny, Nz = (2*64, 2*64, 2*64*5)
-MA = 0.4125
-Pm = 0.1
-Reynolds = 10.0
+Lx, Ly, Lz = (4.0*np.pi, 4.0*np.pi, 10.0*np.pi)
+Nx, Ny, Nz = (2*64, 2*64, 64*5)
+HB = 0.5
+MA = 1.0/np.sqrt(HB)
+Pm = 0.5
+Reynolds = 200.0
 mReynolds = Reynolds*Pm
 mesh1 = 10
 mesh2 = 16
-dt_0 = 0.05 * Lx / Nx  # 1e-4
+init_dt = 0.001 * Lx / (Nx)
+# dt_0 = 0.05 * Lx / Nx  # 1e-4
 dt_max = 1.0
 
 # simulation stop conditions
@@ -72,11 +74,12 @@ problem.substitutions['Jz'] = "(dx(By) - dy(Bx))"
 problem.substitutions['Ox'] = "(dy(w) - dz(v))"
 problem.substitutions['Oy'] = "(dz(u) - dx(w))"
 problem.substitutions['Oz'] = "(dx(v) - dy(u))"
+problem.substitutions['vol_avg(A)']   = 'integ(A)/Lx/Ly/Lz'
 
 # Note the pressure term in this formulation is really p + u^2/2
 problem.add_equation("dt(u) - Reinv*(dx(dx(u)) + dy(dy(u)) + dz(dz(u))) + dx(p) = v*Oz - w*Oy + MA2inv*(Jy*Bz - Jz*By)")
 problem.add_equation("dt(v) - Reinv*(dx(dx(v)) + dy(dy(v)) + dz(dz(v))) + dy(p) = w*Ox - u*Oz + MA2inv*(Jz*Bx - Jx*Bz)")
-problem.add_equation("dt(w) - Reinv*(dx(dx(w)) + dy(dy(w)) + dz(dz(w))) + dz(p) = u*Oy - v*Ox + MA2inv*(Jx*By - Jy*Bx) + Reinv*sin(x)")
+problem.add_equation("dt(w) - Reinv*(dx(dx(w)) + dy(dy(w)) + dz(dz(w))) + dz(p) = u*Oy - v*Ox + MA2inv*(Jx*By - Jy*Bx) + sin(x)")
 # What's commented out here: old code where the momentum advection term was v dot grad v, as opposed to what's above
 # problem.add_equation("dt(u) - Reinv*(dx(dx(u)) + dy(dy(u)) + dz(dz(u))) + dx(p) = - u*dx(u) - v*dy(u) - w*dz(u) + HB*(Jy*Bz - Jz*By)")
 # problem.add_equation("dt(v) - Reinv*(dx(dx(v)) + dy(dy(v)) + dz(dz(v))) + dy(p) = - u*dx(v) - v*dy(v) - w*dz(u) + HB*(Jz*Bx - Jx*Bz)")
@@ -126,7 +129,7 @@ psi.differentiate('z', out=u)
 psi['g'] = -1.0*np.copy(psi['g'])
 psi.differentiate('x', out=w)
 w.set_scales(1, keep_data=True)
-w['g'] = w['g'] + np.sin(x)
+w['g'] = w['g'] + np.sin(x)*Reynolds
 
 # Integration parameters
 solver.stop_sim_time = stop_sim_time
@@ -134,26 +137,28 @@ solver.stop_wall_time = stop_wall_time
 solver.stop_iteration = stop_iteration
 
 # Analysis
-dumps = solver.evaluator.add_file_handler('dumps', iter=5000, max_writes=100)
+dumps = solver.evaluator.add_file_handler('dumps', iter=5000, max_writes=20)
 dumps.add_system(solver.state)
 
 snap = solver.evaluator.add_file_handler('snapshots', iter=100, max_writes=1000)
-for task_name in ["u", "v", "w", "p", "Bx", "By", "Bz"]:
+scalar = solver.evaluator.add_file_handler('scalar', iter=10, max_writes=10000)
+for task_name in ["u", "v", "w", "Bx", "By", "Bz"]:
     snap.add_task("interp(" + task_name + ", x=0)", scales=1, name=task_name + " side")
     snap.add_task("interp(" + task_name + ", y=0)", scales=1, name=task_name + " front")
     snap.add_task("interp(" + task_name + ", z=0)", scales=1, name=task_name + " bottom")
-    snap.add_task("integ(" + task_name + ", 'y', 'z')", scales=1, name=task_name + "avg")
+    snap.add_task("integ(" + task_name + ", 'y', 'z')", scales=1, name=task_name + "2Davg")
+    snap.add_task("integ(" + task_name + ", 'z')", scales=1, name=task_name + "1Davg")
+
+    scalar.add_task("vol_avg(" + task_name + "**2)", name=task_name + " squared")
 
 # CFL
-CFL = flow_tools.CFL(solver, initial_dt=dt_0, cadence=1, safety=0.6,
-                     max_dt=dt_max)  # , max_change=1.5)  # , min_change=0.5, threshold=0.1)
-
-# Unfortunately, I don't think PADDIM's CFL condition can be
-# implemented exactly in Dedalus.
+CFL = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=0.6,
+                     max_change=1.5, max_dt=2e-1, threshold=0.1)
 CFL.add_velocities(('u', 'v', 'w'))
-CFL.add_velocities(('Bx/MA', 'By/MA', 'Bz/MA'))
-#CFL.add_nonconservative_diffusivity('Reinv')
-#CFL.add_nonconservative_diffusivity('Rminv')
+CFL2 = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=0.6,
+                     max_change=1.5, min_change=2e-1, max_dt=2e-1, threshold=0.1)#maybe need to add max dt and safety as
+                                                                                #input variables if timestepping is an issue
+CFL2.add_velocities(('Bx/MA', 'By/MA', 'Bz/MA'))
 
 # Flow properties
 # flow = flow_tools.GlobalFlowProperty(solver, cadence=10)
@@ -166,9 +171,12 @@ try:
     logger.info('Starting loop')
     start_run_time = time.time()
     while solver.ok:
-        dt = CFL.compute_dt()
+        dt1 = CFL.compute_dt()
+        dt2 = CFL2.compute_dt()
+
+        dt = np.min([dt1, dt2])
         solver.step(dt)
-        if (solver.iteration-1) % 1 == 0: #was 100
+        if (solver.iteration-1) % 10 == 0: #was 100
             logger.info('Iteration: %i, sim_time: %e, dt: %e, wall_time: %.2f sec' %(solver.iteration, solver.sim_time, dt, time.time()-start_run_time))
             # logger.info('Max Re = %f' %flow.max('Re'))
 except:
