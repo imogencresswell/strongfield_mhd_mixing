@@ -17,9 +17,9 @@ Reynolds = 200.0
 mReynolds = Reynolds*Pm
 mesh1 = 10
 mesh2 = 16
-init_dt = 0.001 * Lx / (Nx)
+init_dt = 0.0001 * Lx / (Nx)
 # dt_0 = 0.05 * Lx / Nx  # 1e-4
-dt_max = 1.0
+dt_max = 100.0*init_dt
 
 # simulation stop conditions
 stop_sim_time = np.inf  # stop time in simulation time units
@@ -132,7 +132,7 @@ psi.differentiate('z', out=u)
 psi['g'] = -1.0*np.copy(psi['g'])
 psi.differentiate('x', out=w)
 w.set_scales(1, keep_data=True)
-w['g'] = w['g'] + np.sin(x)*Reynolds
+w['g'] = w['g'] + np.sin(x)
 
 # Integration parameters
 solver.stop_sim_time = stop_sim_time
@@ -155,17 +155,17 @@ for task_name in ["u", "v", "w", "Bx", "By", "Bz"]:
     scalar.add_task("vol_avg(" + task_name + "**2)", name=task_name + " squared")
 
 # CFL
-CFL = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=0.6,
-                     max_change=1.5, max_dt=2e-1, threshold=0.1)
+CFL = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=0.4, max_dt=dt_max)
+                     #max_change=1.5, max_dt=dt_max)#, threshold=0.1)
 CFL.add_velocities(('u', 'v', 'w'))
-CFL2 = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=0.6,
-                     max_change=1.5, min_change=2e-1, max_dt=2e-1, threshold=0.1)#maybe need to add max dt and safety as
+CFL2 = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=0.4, max_dt=dt_max)
+                     #max_change=1.5, min_change=2e-1, max_dt=dt_max)#, threshold=0.1)#maybe need to add max dt and safety as
                                                                                 #input variables if timestepping is an issue
 CFL2.add_velocities(('Bx/MA', 'By/MA', 'Bz/MA'))
 
 # Flow properties
-# flow = flow_tools.GlobalFlowProperty(solver, cadence=10)
-# flow.add_property("sqrt(u*u + v*v + w*w) / Re", name='Re')
+flow = flow_tools.GlobalFlowProperty(solver, cadence=10)
+flow.add_property("sqrt(u*u + v*v + w*w)", name='u_abs')
 
 # Main loop
 end_init_time = time.time()
@@ -181,7 +181,7 @@ try:
         solver.step(dt)
         if (solver.iteration-1) % 10 == 0: #was 100
             logger.info('Iteration: %i, sim_time: %e, dt: %e, wall_time: %.2f sec' %(solver.iteration, solver.sim_time, dt, time.time()-start_run_time))
-            # logger.info('Max Re = %f' %flow.max('Re'))
+            logger.info('Max u_abs = %f' %flow.max('u_abs'))
 except:
     logger.error('Exception raised, triggering end of main loop.')
     raise
