@@ -1,0 +1,14 @@
+shopt -s extglob
+for CASE in "$@"
+do
+   ls -d $CASE/checkpoint/!(*.h5)
+   ls -d $CASE/slices*/!(*.h5)
+   ls -d $CASE/profile*/!(*.h5)
+   ls -d $CASE/scalar/!(*.h5)
+   ls -d $CASE/coeffs/!(*.h5)
+   ls -d $CASE/volumes/!(*.h5)
+   ls -d $CASE/final_checkpoint/!(*.h5)
+   ls -d $CASE/powers/!(*.h5)
+   rm -rf $CASE/checkpoint/!(*.h5) $CASE/slices*/!(*.h5) $CASE/profile*/!(*.h5) $CASE/scalar/!(*.h5) $CASE/coeffs/!(*.h5) $CASE/volumes/!(*.h5) $CASE/final_checkpoint/!(*.h5) $CASE/powers/!(*.h5)
+
+done
