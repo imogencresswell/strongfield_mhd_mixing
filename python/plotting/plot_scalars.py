@@ -34,10 +34,10 @@ fig1.add_field(2, 'w')
 fig2 = ScalarFigure(4, 1, col_in=6, row_in=2.5, fig_name='mag_trace')
 fig2.add_field(0, 'Bx')
 fig2.add_field(1, 'Bz')
-fig2.add_field(2, 'b_mag_tot')
+fig2.add_field(2, 'b_mag')
 fig2.add_field(3, 'Bx')
 fig2.add_field(3, 'Bz')
-fig2.add_field(3, 'b_mag_tot')
+fig2.add_field(3, 'b_mag')
 
 # Energies
 fig3 = ScalarFigure(3, 1, col_in=6, row_in=2.5, fig_name='energies')
