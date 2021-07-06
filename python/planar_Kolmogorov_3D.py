@@ -6,25 +6,24 @@ from dedalus.extras import flow_tools
 import logging
 logger = logging.getLogger(__name__)
 
-
 # Parameters
-Lx, Ly, Lz = (4.0*np.pi, 4.0*np.pi, 10.0*np.pi)
-Nx, Ny, Nz = (2*64, 2*64, 64*5)
+Lx, Ly, Lz = (2.0*np.pi, 2.0*np.pi, 5.0*np.pi)
+Nx, Ny, Nz = (2*2*32, 2*2*32, 2*32*5)
 HB = 0.5
 MA = 1.0/np.sqrt(HB)
 Pm = 0.5
 Reynolds = 200.0
 mReynolds = Reynolds*Pm
-mesh1 = 10
-mesh2 = 16
-init_dt = 0.0001 * Lx / (Nx)
+mesh1 = 16
+mesh2 = 20
+init_dt = 0.001 * Lx / (Nx)
 # dt_0 = 0.05 * Lx / Nx  # 1e-4
 dt_max = 100.0*init_dt
 
 # simulation stop conditions
 stop_sim_time = np.inf  # stop time in simulation time units
 stop_wall_time = 2.5*60.*60.  # stop time in terms of wall clock
-stop_iteration = 4000  # stop time in terms of iteration count
+stop_iteration = 32000  # stop time in terms of iteration count
 
 
 def filter_field(field, frac=0.5):
@@ -69,7 +68,9 @@ problem.parameters['Lz'] = Lz
 
 problem.substitutions['Bx'] = "(dy(Az) - dz(Ay))"
 problem.substitutions['By'] = "(dz(Ax) - dx(Az))"
-problem.substitutions['Bz'] = "(1.0 + dx(Ay) - dy(Ax))"
+# problem.substitutions['Bz'] = "(1.0 + dx(Ay) - dy(Ax))"
+problem.substitutions['Bz'] = "(dx(Ay) - dy(Ax))"
+problem.substitutions['Bz_tot'] = "(1.0 + Bz)"
 problem.substitutions['Jx'] = "(dy(Bz) - dz(By))"
 problem.substitutions['Jy'] = "(dz(Bx) - dx(Bz))"
 problem.substitutions['Jz'] = "(dx(By) - dy(Bx))"
@@ -80,17 +81,20 @@ problem.substitutions['Oz'] = "(dx(v) - dy(u))"
 problem.substitutions['vol_avg(A)']   = 'integ(A)/Lx/Ly/Lz'
 
 # Note the pressure term in this formulation is really p + u^2/2
-problem.add_equation("dt(u) - Reinv*(dx(dx(u)) + dy(dy(u)) + dz(dz(u))) + dx(p) = v*Oz - w*Oy + MA2inv*(Jy*Bz - Jz*By)")
-problem.add_equation("dt(v) - Reinv*(dx(dx(v)) + dy(dy(v)) + dz(dz(v))) + dy(p) = w*Ox - u*Oz + MA2inv*(Jz*Bx - Jx*Bz)")
+problem.add_equation("dt(u) - Reinv*(dx(dx(u)) + dy(dy(u)) + dz(dz(u))) + dx(p) - MA2inv*Jy = v*Oz - w*Oy + MA2inv*(Jy*Bz - Jz*By)")
+problem.add_equation("dt(v) - Reinv*(dx(dx(v)) + dy(dy(v)) + dz(dz(v))) + dy(p) + MA2inv*Jx = w*Ox - u*Oz + MA2inv*(Jz*Bx - Jx*Bz)")
 problem.add_equation("dt(w) - Reinv*(dx(dx(w)) + dy(dy(w)) + dz(dz(w))) + dz(p) = u*Oy - v*Ox + MA2inv*(Jx*By - Jy*Bx) + sin(x)")
 # What's commented out here: old code where the momentum advection term was v dot grad v, as opposed to what's above
-# problem.add_equation("dt(u) - Reinv*(dx(dx(u)) + dy(dy(u)) + dz(dz(u))) + dx(p) = - u*dx(u) - v*dy(u) - w*dz(u) + HB*(Jy*Bz - Jz*By)")
-# problem.add_equation("dt(v) - Reinv*(dx(dx(v)) + dy(dy(v)) + dz(dz(v))) + dy(p) = - u*dx(v) - v*dy(v) - w*dz(u) + HB*(Jz*Bx - Jx*Bz)")
-# problem.add_equation("dt(w) - Reinv*(dx(dx(w)) + dy(dy(w)) + dz(dz(w))) + dz(p) = - u*dx(w) - v*dy(w) - w*dz(w) + HB*(Jx*By - Jy*Bx)")
+#problem.add_equation("dt(u) - Reinv*(dx(dx(u)) + dy(dy(u)) + dz(dz(u))) + dx(p) - MA2inv*Jy = - u*dx(u) - v*dy(u) - w*dz(u) + MA2inv*(Jy*Bz - Jz*By)")
+#problem.add_equation("dt(v) - Reinv*(dx(dx(v)) + dy(dy(v)) + dz(dz(v))) + dy(p) + MA2inv*Jx = - u*dx(v) - v*dy(v) - w*dz(u) + MA2inv*(Jz*Bx - Jx*Bz)")
+#problem.add_equation("dt(w) - Reinv*(dx(dx(w)) + dy(dy(w)) + dz(dz(w))) + dz(p) = - u*dx(w) - v*dy(w) - w*dz(w) + MA2inv*(Jx*By - Jy*Bx) + sin(x)")
 
 # Induction equations but for A. Note that if div(A) = 0 then curl(curl(A)) = -Laplacian(A)
-problem.add_equation("dt(Ax) + Rminv*Jx + dx(phi) = v*Bz - w*By")
-problem.add_equation("dt(Ay) + Rminv*Jy + dy(phi) = w*Bx - u*Bz")
+# problem.add_equation("dt(Ax) - Rminv*(dx(dx(Ax)) + dy(dy(Ax)) + dz(dz(Ax))) + dx(phi) - v = v*Bz - w*By")
+# problem.add_equation("dt(Ay) - Rminv*(dx(dx(Ay)) + dy(dy(Ay)) + dz(dz(Ay))) + dy(phi) + u = w*Bx - u*Bz")
+# problem.add_equation("dt(Az) - Rminv*(dx(dx(Az)) + dy(dy(Az)) + dz(dz(Az))) + dz(phi) = u*By - v*Bx")
+problem.add_equation("dt(Ax) + Rminv*Jx + dx(phi) - v = v*Bz - w*By")
+problem.add_equation("dt(Ay) + Rminv*Jy + dy(phi) + u = w*Bx - u*Bz")
 problem.add_equation("dt(Az) + Rminv*Jz + dz(phi) = u*By - v*Bx")
 
 # div(u) = 0 and div(A) = 0 reduce to 0 = 0 for the kx=ky=kz Fourier mode. Thus, closing the system at that k requires
@@ -101,7 +105,7 @@ problem.add_equation("dx(Ax) + dy(Ay) + dz(Az) = 0", condition="(nx!=0) or (ny!=
 problem.add_equation("phi=0", condition="(nx==0) and (ny==0) and (nz==0)")
 
 # Build solver
-solver = problem.build_solver(de.timesteppers.RK443)#SBDF3)
+solver = problem.build_solver(de.timesteppers.SBDF3)  # RK443)
 logger.info('Solver built')
 
 # Initial conditions
@@ -125,7 +129,8 @@ rand = np.random.RandomState(seed=42)
 noise = rand.standard_normal(gshape)[slices]
 psi['g'] = pert * noise * np.ones_like(z)
 # filter_field(psi)
-psi.set_scales(1/8, keep_data=True)
+psi.set_scales(1/16, keep_data=True)
+psi['c']
 psi['g']
 psi.set_scales(1, keep_data=True)
 psi.differentiate('z', out=u)
@@ -145,7 +150,7 @@ dumps.add_system(solver.state)
 
 snap = solver.evaluator.add_file_handler('snapshots', iter=100, max_writes=1000)
 scalar = solver.evaluator.add_file_handler('scalar', iter=10, max_writes=10000)
-for task_name in ["u", "v", "w", "Bx", "By", "Bz"]:
+for task_name in ["u", "v", "w", "Bx", "By", "Bz_tot"]:
     snap.add_task("interp(" + task_name + ", x=0)", scales=1, name=task_name + " side")
     snap.add_task("interp(" + task_name + ", y=0)", scales=1, name=task_name + " front")
     snap.add_task("interp(" + task_name + ", z=0)", scales=1, name=task_name + " bottom")
@@ -155,11 +160,11 @@ for task_name in ["u", "v", "w", "Bx", "By", "Bz"]:
     scalar.add_task("vol_avg(" + task_name + "**2)", name=task_name + " squared")
 
 # CFL
-CFL = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=0.4, max_dt=dt_max)
-                     #max_change=1.5, max_dt=dt_max)#, threshold=0.1)
+CFL = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=0.2, max_dt=dt_max)
+                     #max_change=1.5, max_dt=dt_max, threshold=0.1)
 CFL.add_velocities(('u', 'v', 'w'))
-CFL2 = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=0.4, max_dt=dt_max)
-                     #max_change=1.5, min_change=2e-1, max_dt=dt_max)#, threshold=0.1)#maybe need to add max dt and safety as
+CFL2 = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=0.2, max_dt=dt_max)
+                     #max_change=1.5, min_change=2e-1, max_dt=dt_max, threshold=0.1)#maybe need to add max dt and safety as
                                                                                 #input variables if timestepping is an issue
 CFL2.add_velocities(('Bx/MA', 'By/MA', 'Bz/MA'))
 
@@ -179,8 +184,9 @@ try:
 
         dt = np.min([dt1, dt2])
         solver.step(dt)
-        if (solver.iteration-1) % 10 == 0: #was 100
+        if (solver.iteration-1) % 10 == 0: #was 10
             logger.info('Iteration: %i, sim_time: %e, dt: %e, wall_time: %.2f sec' %(solver.iteration, solver.sim_time, dt, time.time()-start_run_time))
+            logger.info('dt/dt2 = %f' %(dt/dt2))
             logger.info('Max u_abs = %f' %flow.max('u_abs'))
 except:
     logger.error('Exception raised, triggering end of main loop.')
