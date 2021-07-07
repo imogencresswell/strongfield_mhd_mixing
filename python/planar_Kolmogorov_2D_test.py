@@ -185,8 +185,8 @@ solver.stop_wall_time = stop_wall_time
 solver.stop_iteration = stop_iteration
 
 # Analysis
-snap = solver.evaluator.add_file_handler('snapshots', iter=500, max_writes=100000000)
-snap.add_system(solver.state)
+#snap = solver.evaluator.add_file_handler('snapshots', iter=500, max_writes=100000000)
+#snap.add_system(solver.state)
 analysis_tasks = initialize_output(solver, data_dir, Lx, Lz, plot_boundaries=False, threeD=False, mode="overwrite", slice_output_dt=0.25, output_dt=0.11, out_iter=100) #need to change this when i make output file
 
 # CFL
