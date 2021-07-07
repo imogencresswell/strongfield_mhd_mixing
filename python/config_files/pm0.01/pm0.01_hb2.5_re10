@@ -1,0 +1,12 @@
+[parameters]
+
+Lx_factor = 10.0
+Lz_factor = 8.0
+
+Nx=256
+Nz=128
+
+HB=2.5
+Pm=0.01
+Re=10.0
+
