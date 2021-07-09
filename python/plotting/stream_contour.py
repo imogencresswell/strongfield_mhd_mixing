@@ -63,7 +63,7 @@ with plotter.my_sync:
                 b_mag = tasks['b_mag'][i,:]
                 u = tasks['u'][i,:]
                 w = tasks['w'][i,:]
-                psi = tasks['psi'][i,:]
+                phi = tasks['phi'][i,:]
                 Bx = tasks['Bx'][i,:]
                 Bz = tasks['Bz'][i,:]
                 skip=(slice(None,None,15),slice(None,None,15))
