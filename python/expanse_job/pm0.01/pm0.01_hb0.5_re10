@@ -19,4 +19,7 @@ module load py-scipy
 module load fftw
 module load py-pip
 
-mpirun -n 64 python3 planar_Kolmogorov_2D_test.py config_files/pm0.01/pm0.01_hb0.5_re10
+mpirun -n 64 python3 planar_Kolmogorov_2D_test.py config_files/pm0.01/pm0.01_hb0.5_re10 --root_dir=/scratch/$USER/job_$SLURM_JOB_ID
+###mpirun -n 64 python3 planar_Kolmogorov_2D_test.py config_files/pm0.01/pm0.01_hb0.5_re10 --user=$USER --jobid=$SLURM_JOB_ID
+
+tar -cvf pm0.01_hb0.5_re10_output.tar /scratch/$USER/job_$SLURM_JOB_ID/

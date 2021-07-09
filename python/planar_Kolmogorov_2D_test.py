@@ -224,7 +224,7 @@ try:
         solver.step(dt)
         effective_iter = solver.iteration - start_iter
         effective_sim_time = solver.sim_time - init_time
-        if effective_iter % 10 == 0:
+        if effective_iter % 100 == 0:
             Re_avg = flow.grid_average('output_Re')
             log_string =  'Iteration: {:5d}, '.format(solver.iteration)
             log_string +=  'Time: {:8.3e}, '.format(effective_sim_time)
