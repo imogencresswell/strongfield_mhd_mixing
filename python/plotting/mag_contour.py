@@ -68,7 +68,7 @@ with plotter.my_sync:
                 Bz = tasks['Bz'][i,:]
                 skip=(slice(None,None,15),slice(None,None,15))
                 vel_rms=np.sqrt(u**2 + w**2)
-
+                tot_Bx=np.array(Bx) + 1.0
                 #p = ax1.pcolormesh(xx, zz, psi, cmap='viridis')
                 #plt.colorbar(p, cax1, orientation='horizontal')
                 #f=ax1.quiver(xx[skip],zz[skip],u[skip],w[skip], color='white',  units='xy', scale = 70)
@@ -76,7 +76,7 @@ with plotter.my_sync:
 
                 g = ax1.pcolormesh(xx, zz, b_mag, cmap='inferno')
                 plt.colorbar(g, cax1, orientation='horizontal')
-                h=ax1.quiver(xx[skip],zz[skip],Bx[skip],Bz[skip], color='white',  units='xy', scale = 10)
+                h=ax1.quiver(xx[skip],zz[skip],tot_Bx[skip],Bz[skip], color='white',  units='xy', scale = 10)
                 cax1.text(0.5, 0.5, 'Magnetic Field', ha='center', va='center', transform=cax1.transAxes)
 
                 plt.savefig('{:s}/{:s}_{:04d}.png'.format(plotter.out_dir, fig_name, num), dpi=float(args['--dpi']))
