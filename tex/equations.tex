@@ -83,4 +83,26 @@
 	\frac{\partial}{\partial t} \psi = \left\{ \phi, \psi \right\} + \partial_x \phi + \frac{1}{\mathrm{Rm}}\nabla^2 \psi
 	\end{equation}
 	(where $\left\{f, g\right\} \equiv \partial_x f \partial_z g - \partial_z g \partial_x f$).
+	
+	\subsection{Low-Rm equations} \label{derivation:subsec:lowRm}
+	I'll fill in the derivation later if we need it, but for now, here are the low-$\Rm$ equations in 3D:
+	\begin{equation}
+	\left( \frac{\partial}{\partial t} + \mathbf{v} \cdot \nabla \right) u = - \frac{\partial p}{\partial x} + \frac{1}{\Re} \nabla^2 u + \sin (z),
+	\end{equation}
+	\begin{equation}
+	\left( \frac{\partial}{\partial t} + \mathbf{v} \cdot \nabla \right) v = - \frac{\partial p}{\partial y} - H_B \Rm v + \frac{1}{\Re} \nabla^2 v,
+	\end{equation}
+	and
+	\begin{equation}
+	\left( \frac{\partial}{\partial t} + \mathbf{v} \cdot \nabla \right) w = - \frac{\partial p}{\partial z} - H_B \Rm w + \frac{1}{\Re} \nabla^2 w.
+	\end{equation}
+	
+There's a couple key takeaways. 
+
+First, note that the $x$ part has no magnetic terms whatsoever and is identical to the hydro case. 
+The Maxwell and Reynolds stresses normally show up as terms in the horizontally-averaged $\partial u/ \partial t$ equation (see equation 11 in my MHD paper for example -- that equation was obtained by doing a horizontal average of the $\partial u/ \partial t$ equation). 
+Since there's no magnetic terms in the $\partial u/ \partial t$ equation here, there won't be any Maxwell stress terms in it after doing a horizontal average. 
+
+Next, note that the only time $H_B$ shows up anywhere it's in the form $H_B \Rm$. 
+Thus, it's the product of these terms that should matter here, rather than either of the terms individually.
 \end{document}
