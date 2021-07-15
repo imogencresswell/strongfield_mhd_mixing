@@ -41,10 +41,9 @@ fig_name   = args['--fig_name']
 plotter = ProfilePlotter(root_dir, file_dir='profiles', fig_name=fig_name, start_file=start_file, n_files=n_files)
 
 if int(args['--fig_type']) == 1:
-    plotter.add_profile('T', avg_writes)
-    plotter.add_profile('enth_flux', avg_writes)
-    plotter.add_profile('kappa_flux', avg_writes)
-    plotter.add_profile('tot_flux', avg_writes)
+    plotter.add_profile('u', avg_writes)
+    plotter.add_profile('re_stress', avg_writes)
+    plotter.add_profile('max_stress', avg_writes)
 
 plotter_kwargs = { 'col_in' : int(args['--col_inch']), 'row_in' : int(args['--row_inch']) }
 plotter.plot_avg_profiles(dpi=int(args['--dpi']), **plotter_kwargs)
