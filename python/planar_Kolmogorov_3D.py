@@ -1,50 +1,92 @@
-import numpy as np
-from mpi4py import MPI
+"""
+Dedalus script for 2D strongfield MHD Kolmogorov flow
+This script usesa Fourier bases in both the vertical and horozontal directions with fully
+periodic boundary condtions. 
+Usage:
+    planar_Kolmogorov_2D_test.py [options]
+    planar_Kolmogorov_2D_test.py <config> [options]
+Options:
+    --Lx_factor=<Lx>                Box size in x direction [default: 2.0]
+    --Lz_factor=<Lz>                Box size in z direction [default: 4.0]
+    --Ly_factor=<Lz>                Box size in z direction [default: 4.0]
+    --Nx=<Nx>                       Horizontal x resolution [default: 128]
+    --Nz=<Nz>                       Vertical resolution [default: 256]
+    --Ny=<Ny>                       Horizontal y resolution [default: 256]
+    --HB=<HB>                       Magnetic field strength [default: 0.4]
+    --Pm=<MagneticPrandtl>          Magnetic prandtl number [default: 0.1]
+    --Re=<Reynolds>                 Reynolds number [default: 20.0]
+    --mesh=<mesh>                   Processor mesh if distributing 3D run in 2D 
+    --root_dir=<dir>                Root directory for output [default: ./]
+    --label=<label>                 Add label to directory name
+    --safety=<s>               CFL safety factor [default: 0.7]
+    --mag_safety=<ms>          Magnetic CFL safety factor [default: 0.7]
+    --SBDF2              Uses SBDF2 timestepper
+    --SBDF4              Uses SBDF4 timestepper
+Need to add stop time options
+"""
+
+import logging
+import os
+import sys
 import time
+from configparser import ConfigParser
+from pathlib import Path
+
+import numpy as np
+from docopt import docopt
+from mpi4py import MPI
+
 from dedalus import public as de
 from dedalus.extras import flow_tools
-import logging
+from dedalus.tools  import post
+from dedalus.tools.config import config
+
+
+from logic.output import initialize_output #need to change output to what I want to output
+from logic.checkpointing import Checkpoint
+from logic.extras import filter_field
+from logic.parsing import  construct_out_dir
+
 logger = logging.getLogger(__name__)
 
-# Parameters
-Lx, Ly, Lz = (2.0*np.pi, 2.0*np.pi, 5.0*np.pi)
-Nx, Ny, Nz = (2*2*32, 2*2*32, 2*32*5)
-HB = 0.5
-MA = 1.0/np.sqrt(HB)
-Pm = 0.5
-Reynolds = 200.0
-mReynolds = Reynolds*Pm
-mesh1 = 16
-mesh2 = 20
-init_dt = 0.001 * Lx / (Nx)
-# dt_0 = 0.05 * Lx / Nx  # 1e-4
-dt_max = 100.0*init_dt
+args   = docopt(__doc__)
+if args['<config>'] is not None:
+    config_file = Path(args['<config>'])
+    config = ConfigParser()
+    config.read(str(config_file))
+    for n, v in config.items('parameters'):
+        for k in args.keys():
+            if k.split('--')[-1].lower() == n:
+                if v == 'true': v = True
+                args[k] = v
+#Read in command line args, set up data directory
 
+resolution_flags=['Nx','Ny','Nz']
+data_dir = construct_out_dir(args, base_flags=['HB','Pm','Re','Lx_factor','Ly_factor','Lz_factor'],label_flags=[], resolution_flags=resolution_flags, parent_dir_flag='root_dir')
+logger.info("saving run in: {}".format(data_dir))
+
+
+# Simulation Parameters
+Lx=float(args['--Lx_factor'])*np.pi
+Ly=float(args['--Ly_factor'])*np.pi
+Lz=float(args['--Lz_factor'])*np.pi
+Nx=int(args['--Nx'])
+Ny=int(args['--Ny'])
+Nz=int(args['--Nz'])
+HB_star=float(args['--HB'])
+Pm=float(args['--Pm'])
+Re=float(args['--Re'])
+Re_m = Re*Pm
+aspect=Lx
+init_dt = 0.01 * Lx / (Nx)  # I have not thought about what init_dt should be, this was a guess
+
+
+logger.info("HB = {:2g}, Pm = {:2g}, Re = {:2g} , boxsize={}x{}x{}, resolution = {}x{}x{}".format(HB_star, Pm, Re, Lx, Ly, Lz,  Nx, Ny, Nz))
 # simulation stop conditions
 stop_sim_time = np.inf  # stop time in simulation time units
 stop_wall_time = 2.5*60.*60.  # stop time in terms of wall clock
 stop_iteration = 32000  # stop time in terms of iteration count
 
-
-def filter_field(field, frac=0.5):
-    """
-    Taken from Dedalus example notebook on Taylor-Couette flow. This is meant to filter out small-scale noise in
-    the initial condition, which can cause problems.
-    :param field:
-    :param frac:
-    :return:
-    """
-    dom = field.domain
-    local_slice = dom.dist.coeff_layout.slices(scales=dom.dealias)
-    coeff = []
-    for i in range(dom.dim)[::-1]:
-        coeff.append(np.linspace(0, 1, dom.global_coeff_shape[i], endpoint=False))
-    cc = np.meshgrid(*coeff)
-
-    field_filter = np.zeros(dom.local_coeff_shape, dtype='bool')
-    for i in range(dom.dim):
-        field_filter = field_filter | (cc[i][local_slice] > frac)
-    field['c'][field_filter] = 0j
 
 
 # Create bases and domain
@@ -58,8 +100,8 @@ domain = de.Domain([x_basis, y_basis, z_basis], grid_dtype=np.float64, mesh=(mes
 # Drawing heavily from advice from Ben Brown/examples he and the other Dedalus developers shared on github,
 # particularly https://github.com/DedalusProject/dedalus_scaling/blob/master/RB_mhd_3d.py
 problem = de.IVP(domain, variables=['u', 'v', 'w', 'p', 'Ax', 'Ay', 'Az', 'phi'], time='t')
-problem.parameters['MA2inv'] = 1.0/(MA**2.0)  # 99% sure that this is just H_B^*
-problem.parameters['MA'] = MA
+problem.parameters['MA2inv'] = HB_star  # 99% sure that this is just H_B^*
+problem.parameters['MA'] = np.sqrt(1/HB_star)
 problem.parameters['Reinv'] = 1.0/Reynolds
 problem.parameters['Rminv'] = 1.0/mReynolds
 problem.parameters['Lx'] = Lx
@@ -79,11 +121,22 @@ problem.substitutions['Ox'] = "(dy(w) - dz(v))"
 problem.substitutions['Oy'] = "(dz(u) - dx(w))"
 problem.substitutions['Oz'] = "(dx(v) - dy(u))"
 problem.substitutions['vol_avg(A)']   = 'integ(A)/Lx/Ly/Lz'
+problem.substitutions["Kx"] = "dy(Oz)-dz(Oy)"
+problem.substitutions["Ky"] = "dz(Ox)-dx(Oz)"
+problem.substitutions["Kz"] = "dx(Oy)-dy(Ox)"
+
+
 
 # Note the pressure term in this formulation is really p + u^2/2
-problem.add_equation("dt(u) - Reinv*(dx(dx(u)) + dy(dy(u)) + dz(dz(u))) + dx(p) - MA2inv*Jy = v*Oz - w*Oy + MA2inv*(Jy*Bz - Jz*By)")
-problem.add_equation("dt(v) - Reinv*(dx(dx(v)) + dy(dy(v)) + dz(dz(v))) + dy(p) + MA2inv*Jx = w*Ox - u*Oz + MA2inv*(Jz*Bx - Jx*Bz)")
-problem.add_equation("dt(w) - Reinv*(dx(dx(w)) + dy(dy(w)) + dz(dz(w))) + dz(p) = u*Oy - v*Ox + MA2inv*(Jx*By - Jy*Bx) + sin(x)")
+problem.add_equation("dt(u) + Reinv*Kx + dx(p)  = v*Oz - w*Oy + MA2inv*(Jy*Bz - Jz*By) + sin(z) ")
+problem.add_equation("dt(v) + Reinv*Ky + dy(p) + MA2inv*Jz = w*Ox - u*Oz + MA2inv*(Jz*Bx - Jx*Bz)")
+problem.add_equation("dt(w) + Reinv*Kz + dz(p) - MA2inv*Jy = u*Oy - v*Ox + MA2inv*(Jx*By - Jy*Bx) ")
+
+
+
+#problem.add_equation("dt(u) + Reinv*Kx + dx(p) - MA2inv*Jy = v*Oz - w*Oy + MA2inv*(Jy*Bz - Jz*By)")
+#problem.add_equation("dt(v) + Reinv*Ky + dy(p) + MA2inv*Jx = w*Ox - u*Oz + MA2inv*(Jz*Bx - Jx*Bz)")
+#problem.add_equation("dt(w) + Reinv*Kz + dz(p) = u*Oy - v*Ox + MA2inv*(Jx*By - Jy*Bx) + sin(x)")
 # What's commented out here: old code where the momentum advection term was v dot grad v, as opposed to what's above
 #problem.add_equation("dt(u) - Reinv*(dx(dx(u)) + dy(dy(u)) + dz(dz(u))) + dx(p) - MA2inv*Jy = - u*dx(u) - v*dy(u) - w*dz(u) + MA2inv*(Jy*Bz - Jz*By)")
 #problem.add_equation("dt(v) - Reinv*(dx(dx(v)) + dy(dy(v)) + dz(dz(v))) + dy(p) + MA2inv*Jx = - u*dx(v) - v*dy(v) - w*dz(u) + MA2inv*(Jz*Bx - Jx*Bz)")
@@ -105,7 +158,13 @@ problem.add_equation("dx(Ax) + dy(Ay) + dz(Az) = 0", condition="(nx!=0) or (ny!=
 problem.add_equation("phi=0", condition="(nx==0) and (ny==0) and (nz==0)")
 
 # Build solver
-solver = problem.build_solver(de.timesteppers.SBDF3)  # RK443)
+if args['--SBDF2']:
+    ts = de.timesteppers.SBDF2
+if args['--SBDF4']:
+    ts = de.timesteppers.SBDF4
+else:
+    ts = de.timesteppers.RK443
+solver = problem.build_solver(ts)
 logger.info('Solver built')
 
 # Initial conditions
@@ -128,7 +187,7 @@ slices = domain.dist.grid_layout.slices(scales=1)
 rand = np.random.RandomState(seed=42)
 noise = rand.standard_normal(gshape)[slices]
 psi['g'] = pert * noise * np.ones_like(z)
-# filter_field(psi)
+filter_field(psi)
 psi.set_scales(1/16, keep_data=True)
 psi['c']
 psi['g']
@@ -158,14 +217,20 @@ for task_name in ["u", "v", "w", "Bx", "By", "Bz_tot"]:
     snap.add_task("integ(" + task_name + ", 'z')", scales=1, name=task_name + "1Davg")
 
     scalar.add_task("vol_avg(" + task_name + "**2)", name=task_name + " squared")
+    
 
+    
 # CFL
-CFL = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=0.2, max_dt=dt_max)
-                     #max_change=1.5, max_dt=dt_max, threshold=0.1)
+cfl_safety = float(args['--safety'])
+mag_cfl_safety = float(args['--mag_safety'])
+
+
+CFL = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=cfl_safety, )
+                     max_change=1.5, min_change=0.5, max_dt=dt_max, threshold=0.1)
 CFL.add_velocities(('u', 'v', 'w'))
-CFL2 = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, safety=0.2, max_dt=dt_max)
-                     #max_change=1.5, min_change=2e-1, max_dt=dt_max, threshold=0.1)#maybe need to add max dt and safety as
-                                                                                #input variables if timestepping is an issue
+CFL2 = flow_tools.CFL(solver, initial_dt=init_dt, cadence=1, mag_cfl_safety,)
+                     max_change=1.5, min_change=0.5, max_dt=dt_max, threshold=0.1)
+                                                                                
 CFL2.add_velocities(('Bx/MA', 'By/MA', 'Bz/MA'))
 
 # Flow properties
