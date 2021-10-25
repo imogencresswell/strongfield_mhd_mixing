@@ -79,6 +79,16 @@ Re=float(args['--Re'])
 Re_m = Re*Pm
 aspect=Lx
 init_dt = 0.01 * Lx / (Nx)  # I have not thought about what init_dt should be, this was a guess
+mesh = args['--mesh']
+ncpu = MPI.COMM_WORLD.size
+if mesh is not None:
+    mesh = mesh.split(',')
+    mesh = [int(mesh[0]), int(mesh[1])]
+    else:
+        log2 = np.log2(ncpu)
+        if log2 == int(log2):
+            mesh = [int(2**np.ceil(log2/2)),int(2**np.floor(log2/2))]
+        logger.info("running on processor mesh={}".format(mesh))
 
 
 logger.info("HB = {:2g}, Pm = {:2g}, Re = {:2g} , boxsize={}x{}x{}, resolution = {}x{}x{}".format(HB_star, Pm, Re, Lx, Ly, Lz,  Nx, Ny, Nz))
